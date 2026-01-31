@@ -143,6 +143,20 @@ async function startGateway() {
     console.error(`[gateway] WARNING: Token sync failed with code ${syncResult.code}: ${syncResult.output}`);
   }
 
+  // Ensure allowInsecureAuth is set on every gateway start, not just during onboarding.
+  // Without this, the Control UI shows "disconnected (1008): pairing required" because
+  // the gateway demands device pairing. The wrapper already handles bearer token auth,
+  // so device pairing is unnecessary. (See GitHub issue #2284)
+  const insecureAuthResult = await runCmd(
+    OPENCLAW_NODE,
+    clawArgs(["config", "set", "gateway.controlUi.allowInsecureAuth", "true"]),
+  );
+  if (insecureAuthResult.code !== 0) {
+    console.error(`[gateway] WARNING: allowInsecureAuth sync failed: ${insecureAuthResult.output}`);
+  } else {
+    debug("[gateway] ✓ allowInsecureAuth=true synced to config");
+  }
+
   // Verify sync succeeded
   try {
     const config = JSON.parse(fs.readFileSync(configPath(), "utf8"));
