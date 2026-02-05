@@ -725,6 +725,16 @@ app.use(express.json({ limit: "1mb" }));
 // Minimal health endpoint for Railway.
 app.get("/setup/healthz", (_req, res) => res.json({ ok: true }));
 
+// DEBUG ENDPOINT - Remove after troubleshooting
+app.get("/debug/env", (_req, res) => {
+  res.json({
+    hasSetupPassword: !!SETUP_PASSWORD,
+    passwordLength: SETUP_PASSWORD ? SETUP_PASSWORD.length : 0,
+    passwordValue: SETUP_PASSWORD || "NOT SET",
+    allEnvVars: Object.keys(process.env).filter(key => key.includes('SETUP'))
+  });
+});
+
 // Serve static files for setup wizard
 app.get("/setup/app.js", requireSetupAuth, (_req, res) => {
   res.type("application/javascript");
