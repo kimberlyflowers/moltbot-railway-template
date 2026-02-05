@@ -1332,10 +1332,22 @@ server.on("upgrade", async (req, socket, head) => {
   socket.destroy();
 });
 
+// Start the Express server
+const server = app.listen(PORT, () => {
+  console.log(`🚀 Openclaw Railway wrapper listening on port ${PORT}`);
+  console.log(`🌸 Bloomie dashboard available at http://localhost:${PORT}/`);
+});
+
+// Handle WebSocket upgrades
+server.on('upgrade', (req, socket, head) => {
+  handleWebSocketUpgrade(req, socket, head);
+});
+
 process.on("SIGTERM", () => {
   // Best-effort shutdown
   try {
     if (gatewayProc) gatewayProc.kill("SIGTERM");
+    if (server) server.close();
   } catch {
     // ignore
   }
