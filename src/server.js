@@ -16,6 +16,14 @@ try {
   console.warn("⚠️ Configuration fix failed:", err.message);
 }
 
+// 🌸 Restore Bloomie dashboard routes after any patching
+try {
+  console.log("🌸 Restoring Bloomie dashboard routes...");
+  childProcess.execSync("node restore-bloomie.js", { stdio: "inherit", cwd: process.cwd() });
+} catch (err) {
+  console.warn("⚠️ Bloomie restoration failed:", err.message);
+}
+
 // Railway commonly sets PORT=8080 for HTTP services.
 const PORT = Number.parseInt(process.env.PORT ?? "8080", 10);
 const STATE_DIR =
