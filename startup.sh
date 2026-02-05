@@ -1,0 +1,77 @@
+#!/bin/bash
+echo "🚀 Bloomie Dashboard Startup Script"
+
+# Wait for any apply-patch to complete
+sleep 2
+
+echo "🌸 Injecting Bloomie dashboard routes into patched server.js..."
+
+# Target the patched server.js file
+SERVER_FILE="src/server.js"
+
+# Check if Bloomie routes already exist
+if grep -q "🌸 Bloomie Dashboard Routes" "$SERVER_FILE"; then
+    echo "✅ Bloomie routes already present"
+else
+    echo "📝 Injecting Bloomie routes..."
+
+    # Create temporary file with Bloomie routes
+    cat > /tmp/bloomie_routes.js << 'EOF'
+
+// 🌸 Bloomie Dashboard Routes (BEFORE authentication middleware)
+app.get("/", (req, res) => {
+  res.sendFile(path.resolve("bloombot-sales-page-v8it is finished.html"));
+});
+
+app.get("/dashboard", (req, res) => {
+  res.sendFile(path.resolve("bloombot-sales-page-v8it is finished.html"));
+});
+
+app.get("/bloomie", (req, res) => {
+  res.sendFile(path.resolve("bloombot-sales-page-FIRE!!.html"));
+});
+
+app.get("/viral", (req, res) => {
+  res.sendFile(path.resolve("bloombot viral-sales-page-v3.html"));
+});
+
+// Serve Bloomie assets
+app.get("/bloomie.png", (req, res) => {
+  res.sendFile(path.resolve("bloomie.png"));
+});
+
+app.get("*.png", (req, res) => {
+  const filename = path.basename(req.path);
+  const filepath = path.resolve(filename);
+  if (fs.existsSync(filepath)) {
+    res.sendFile(filepath);
+  } else {
+    res.status(404).send("Asset not found");
+  }
+});
+
+app.get("*.jpg", (req, res) => {
+  const filename = path.basename(req.path);
+  const filepath = path.resolve(filename);
+  if (fs.existsSync(filepath)) {
+    res.sendFile(filepath);
+  } else {
+    res.status(404).send("Asset not found");
+  }
+});
+
+EOF
+
+    # Find Express app creation and inject routes after it
+    if grep -q "app.disable.*x-powered-by" "$SERVER_FILE"; then
+        # Insert Bloomie routes right after app.disable("x-powered-by")
+        sed -i '/app\.disable.*x-powered-by/r /tmp/bloomie_routes.js' "$SERVER_FILE"
+        echo "✅ Bloomie routes injected successfully!"
+    else
+        echo "❌ Could not find Express app creation point"
+        exit 1
+    fi
+fi
+
+echo "🎯 Starting patched server with Bloomie routes..."
+exec node src/server.js
