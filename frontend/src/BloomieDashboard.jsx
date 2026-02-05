@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from "react";
 
 /* ═══════════════════════════════════════════════════════════════
    THEME
@@ -371,7 +371,7 @@ function PMenu({c,mob,onClose,onAct}){
 /* ═══════════════════════════════════════════════════════════════
    MAIN
    ═══════════════════════════════════════════════════════════════ */
-function BloomieDashboard(){
+export default function BloomieDashboard(){
   var W=useW(),mob=W<768;
   var _dk=useState(true),dark=_dk[0],setDark=_dk[1];
   var c=mk(dark);
@@ -1521,5 +1521,3 @@ function BloomieDashboard(){
     </div>
   );
 }
-
-export default BloomieDashboard;
