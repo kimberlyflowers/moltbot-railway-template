@@ -966,6 +966,208 @@ app.get("/setup/debug/openclaw-api", async (_req, res) => {
   res.json(discoveryResults);
 });
 
+// 🔍 OPENCLAW SOURCE CODE ANALYSIS
+app.get("/setup/debug/openclaw-source", (_req, res) => {
+  const analysis = {
+    timestamp: new Date().toISOString(),
+    openclaw: {
+      entryPoint: OPENCLAW_ENTRY,
+      paths: {},
+      processes: {},
+      sourceCode: {},
+      documentation: {},
+      storage: {}
+    }
+  };
+
+  try {
+    // 1. FIND OPENCLAW INSTALLATION PATHS
+    const pathsToCheck = [
+      '/openclaw',
+      '/app/openclaw',
+      process.cwd() + '/openclaw',
+      '/usr/local/openclaw',
+      '/opt/openclaw'
+    ];
+
+    for (const checkPath of pathsToCheck) {
+      if (fs.existsSync(checkPath)) {
+        analysis.openclaw.paths[checkPath] = {
+          exists: true,
+          contents: fs.readdirSync(checkPath).slice(0, 20) // Limit output
+        };
+
+        // Check for key subdirectories
+        const subdirs = ['dist', 'src', 'docs', 'api', 'routes', 'gateway'];
+        for (const subdir of subdirs) {
+          const fullPath = path.join(checkPath, subdir);
+          if (fs.existsSync(fullPath)) {
+            analysis.openclaw.paths[fullPath] = {
+              exists: true,
+              contents: fs.readdirSync(fullPath).slice(0, 10)
+            };
+          }
+        }
+      } else {
+        analysis.openclaw.paths[checkPath] = { exists: false };
+      }
+    }
+
+    // 2. READ ENTRY POINT SOURCE
+    if (fs.existsSync(OPENCLAW_ENTRY)) {
+      const entryContent = fs.readFileSync(OPENCLAW_ENTRY, 'utf8');
+      analysis.openclaw.sourceCode.entry = {
+        path: OPENCLAW_ENTRY,
+        size: entryContent.length,
+        preview: entryContent.substring(0, 2000),
+        hasApiRoutes: entryContent.includes('api') || entryContent.includes('router'),
+        hasExpress: entryContent.includes('express'),
+        hasGateway: entryContent.includes('gateway')
+      };
+    }
+
+    // 3. LOOK FOR PACKAGE.JSON AND DOCS
+    const docsToCheck = [
+      '/openclaw/package.json',
+      '/openclaw/README.md',
+      '/openclaw/ARCHITECTURE.md',
+      '/openclaw/docs',
+      '/openclaw/api-docs',
+      '/openclaw/swagger.json'
+    ];
+
+    for (const docPath of docsToCheck) {
+      if (fs.existsSync(docPath)) {
+        const isDir = fs.statSync(docPath).isDirectory();
+        if (isDir) {
+          analysis.openclaw.documentation[docPath] = {
+            type: 'directory',
+            contents: fs.readdirSync(docPath).slice(0, 10)
+          };
+        } else {
+          const content = fs.readFileSync(docPath, 'utf8');
+          analysis.openclaw.documentation[docPath] = {
+            type: 'file',
+            size: content.length,
+            preview: content.substring(0, 1000)
+          };
+        }
+      }
+    }
+
+    // 4. SEARCH FOR API ROUTE DEFINITIONS
+    const searchPaths = ['/openclaw/dist', '/openclaw/src'];
+    for (const searchPath of searchPaths) {
+      if (fs.existsSync(searchPath)) {
+        const jsFiles = [];
+
+        function findJSFiles(dir, depth = 0) {
+          if (depth > 3) return; // Limit recursion
+
+          try {
+            const items = fs.readdirSync(dir);
+            for (const item of items.slice(0, 20)) { // Limit files checked
+              const itemPath = path.join(dir, item);
+              const stat = fs.statSync(itemPath);
+
+              if (stat.isFile() && (item.endsWith('.js') || item.endsWith('.ts'))) {
+                jsFiles.push(itemPath);
+              } else if (stat.isDirectory() && !item.startsWith('.')) {
+                findJSFiles(itemPath, depth + 1);
+              }
+            }
+          } catch (err) {
+            // Skip directories we can't read
+          }
+        }
+
+        findJSFiles(searchPath);
+
+        // Analyze files for API patterns
+        const apiPatterns = [];
+        for (const jsFile of jsFiles.slice(0, 10)) { // Limit analysis
+          try {
+            const content = fs.readFileSync(jsFile, 'utf8');
+            const routes = [];
+
+            // Look for common route patterns
+            const routeRegexes = [
+              /app\.(get|post|put|delete)\s*\(\s*['"`]([^'"`]+)['"`]/g,
+              /router\.(get|post|put|delete)\s*\(\s*['"`]([^'"`]+)['"`]/g,
+              /\.route\s*\(\s*['"`]([^'"`]+)['"`]/g,
+              /\/api\/[^\s'"`,)]+/g
+            ];
+
+            for (const regex of routeRegexes) {
+              let match;
+              while ((match = regex.exec(content)) !== null) {
+                routes.push({
+                  method: match[1] || 'UNKNOWN',
+                  path: match[2] || match[1] || match[0]
+                });
+              }
+            }
+
+            if (routes.length > 0) {
+              apiPatterns.push({
+                file: jsFile,
+                routes: routes.slice(0, 5) // Limit routes per file
+              });
+            }
+          } catch (err) {
+            // Skip files we can't read
+          }
+        }
+
+        analysis.openclaw.sourceCode[searchPath] = {
+          jsFiles: jsFiles.length,
+          apiFiles: apiPatterns
+        };
+      }
+    }
+
+    // 5. CHECK CONFIGURATION AND STATE
+    const configPaths = [
+      path.join(STATE_DIR, 'openclaw.json'),
+      '/openclaw/config',
+      '/openclaw/.env',
+      '/data/.openclaw',
+      '/tmp/openclaw'
+    ];
+
+    for (const configPath of configPaths) {
+      if (fs.existsSync(configPath)) {
+        const isDir = fs.statSync(configPath).isDirectory();
+        if (isDir) {
+          analysis.openclaw.storage[configPath] = {
+            type: 'directory',
+            contents: fs.readdirSync(configPath).slice(0, 10)
+          };
+        } else {
+          try {
+            const content = fs.readFileSync(configPath, 'utf8');
+            analysis.openclaw.storage[configPath] = {
+              type: 'file',
+              size: content.length,
+              preview: content.substring(0, 500)
+            };
+          } catch (err) {
+            analysis.openclaw.storage[configPath] = {
+              type: 'file',
+              error: 'Cannot read'
+            };
+          }
+        }
+      }
+    }
+
+  } catch (err) {
+    analysis.error = err.message;
+  }
+
+  res.json(analysis);
+});
+
 // DEBUG ENDPOINT - Remove after troubleshooting
 app.get("/debug/env", (_req, res) => {
   res.json({
