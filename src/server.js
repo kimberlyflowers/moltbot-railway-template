@@ -856,12 +856,8 @@ proxy.on("proxyReqWs", (proxyReq, req, socket, options, head) => {
   proxyReq.setHeader("Authorization", `Bearer ${OPENCLAW_GATEWAY_TOKEN}`);
 });
 
-app.use(async (req, res) => {
-  // If not configured, force users to /setup for any non-setup routes.
-  if (!isConfigured() && !req.path.startsWith("/setup")) {
-    return res.redirect("/setup");
-  }
-
+// Proxy only specific Openclaw routes (not Bloomie dashboard routes)
+app.use('/openclaw', async (req, res) => {
   if (isConfigured()) {
     try {
       await ensureGatewayRunning();
@@ -875,6 +871,17 @@ app.use(async (req, res) => {
 
   // Proxy to gateway (auth token injected via proxyReq event)
   return proxy.web(req, res, { target: GATEWAY_TARGET });
+});
+
+// Handle any remaining unmatched routes - redirect unconfigured to setup, 404 for configured
+app.use(async (req, res) => {
+  // If not configured, force users to /setup for any non-setup routes.
+  if (!isConfigured() && !req.path.startsWith("/setup")) {
+    return res.redirect("/setup");
+  }
+
+  // For configured state, return 404 for unmatched routes (let Bloomie routes work)
+  res.status(404).type("text/plain").send("Not found");
 });
 
 // Create HTTP server from Express app
