@@ -1305,10 +1305,13 @@ app.use('/openclaw', async (req, res) => {
 
 // Handle any remaining unmatched routes - redirect unconfigured to setup, 404 for configured
 app.use(async (req, res) => {
+  // TEMPORARY: Skip redirect to test Vite build - REMOVE AFTER TESTING
+  console.log(`🔍 [ROUTE DEBUG] ${req.method} ${req.path} - configured: ${isConfigured()}`);
+
   // If not configured, force users to /setup for any non-setup routes.
-  if (!isConfigured() && !req.path.startsWith("/setup")) {
-    return res.redirect("/setup");
-  }
+  // COMMENTED OUT FOR TESTING: if (!isConfigured() && !req.path.startsWith("/setup")) {
+  //   return res.redirect("/setup");
+  // }
 
   // For configured state, return 404 for unmatched routes (let Bloomie routes work)
   res.status(404).type("text/plain").send("Not found");
