@@ -8,6 +8,14 @@ import express from "express";
 import httpProxy from "http-proxy";
 import * as tar from "tar";
 
+// 🔧 Fix configuration on startup
+try {
+  console.log("🔧 Running configuration fix...");
+  childProcess.execSync("node fix-config.js", { stdio: "inherit", cwd: process.cwd() });
+} catch (err) {
+  console.warn("⚠️ Configuration fix failed:", err.message);
+}
+
 // Railway commonly sets PORT=8080 for HTTP services.
 const PORT = Number.parseInt(process.env.PORT ?? "8080", 10);
 const STATE_DIR =
