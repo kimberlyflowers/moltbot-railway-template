@@ -658,28 +658,27 @@ function requireSetupAuth(req, res, next) {
 const app = express();
 app.disable("x-powered-by");
 
-// 🌸 Bloomie Dashboard Routes - Serve React App (BEFORE authentication middleware)
+// 🌸 Bloomie Dashboard Routes - Serve Built React App (BEFORE authentication middleware)
+// Serve static assets from Vite build
+app.use(express.static(path.join(process.cwd(), "dist")));
 app.get("/", (req, res) => {
-  res.sendFile(path.join(process.cwd(), "src", "public", "index.html"));
+  res.sendFile(path.join(process.cwd(), "dist", "index.html"));
 });
 
 app.get("/dashboard", (req, res) => {
-  res.sendFile(path.join(process.cwd(), "src", "public", "index.html"));
+  res.sendFile(path.join(process.cwd(), "dist", "index.html"));
 });
 
 app.get("/bloomie", (req, res) => {
-  res.sendFile(path.join(process.cwd(), "src", "public", "index.html"));
+  res.sendFile(path.join(process.cwd(), "dist", "index.html"));
 });
 
 app.get("/viral", (req, res) => {
-  res.sendFile(path.join(process.cwd(), "src", "public", "index.html"));
+  res.sendFile(path.join(process.cwd(), "dist", "index.html"));
 });
 
 // Serve the React JSX component
-app.get("/dashboard.jsx", (req, res) => {
-  res.type("text/javascript");
-  res.sendFile(path.join(process.cwd(), "src", "public", "bloomie-dashboard-v11.jsx"));
-});
+// JSX files are now bundled by Vite - no direct serving needed
 
 // Serve Bloomie assets
 app.get("/bloomie.png", (req, res) => {

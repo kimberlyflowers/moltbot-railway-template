@@ -87,6 +87,11 @@ RUN printf '%s\n' '#!/usr/bin/env bash' 'exec node /openclaw/dist/entry.js "$@"'
   && chmod +x /usr/local/bin/openclaw
 
 COPY src ./src
+COPY frontend ./frontend
+COPY vite.config.js ./
+
+# Build frontend with Vite
+RUN npm run build:frontend
 
 ENV PORT=8080
 EXPOSE 8080
