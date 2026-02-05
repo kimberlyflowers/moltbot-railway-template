@@ -725,6 +725,18 @@ app.use(express.json({ limit: "1mb" }));
 // Minimal health endpoint for Railway.
 app.get("/setup/healthz", (_req, res) => res.json({ ok: true }));
 
+// Status endpoint to check configuration state
+app.get("/setup/status", (_req, res) => {
+  const configFile = configPath();
+  res.json({
+    isConfigured: isConfigured(),
+    configPath: configFile,
+    configExists: fs.existsSync(configFile),
+    stateDir: STATE_DIR,
+    stateDirExists: fs.existsSync(STATE_DIR)
+  });
+});
+
 // DEBUG ENDPOINT - Remove after troubleshooting
 app.get("/debug/env", (_req, res) => {
   res.json({
