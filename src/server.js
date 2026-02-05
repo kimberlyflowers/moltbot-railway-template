@@ -1338,10 +1338,8 @@ const server = app.listen(PORT, () => {
   console.log(`🌸 Bloomie dashboard available at http://localhost:${PORT}/`);
 });
 
-// Handle WebSocket upgrades
-server.on('upgrade', (req, socket, head) => {
-  handleWebSocketUpgrade(req, socket, head);
-});
+// Initialize the unified WebSocket server
+const websocketServer = new UnifiedWebSocketServer(server);
 
 process.on("SIGTERM", () => {
   // Best-effort shutdown
