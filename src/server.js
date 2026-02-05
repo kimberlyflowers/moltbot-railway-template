@@ -812,6 +812,48 @@ proxy.on("proxyReqWs", (proxyReq, req, socket, options, head) => {
   proxyReq.setHeader("Authorization", `Bearer ${OPENCLAW_GATEWAY_TOKEN}`);
 });
 
+// 🌸 Bloomie Dashboard Routes
+app.get("/", (req, res) => {
+  res.sendFile(path.resolve("bloombot-sales-page-v8it is finished.html"));
+});
+
+app.get("/dashboard", (req, res) => {
+  res.sendFile(path.resolve("bloombot-sales-page-v8it is finished.html"));
+});
+
+app.get("/bloomie", (req, res) => {
+  res.sendFile(path.resolve("bloombot-sales-page-FIRE!!.html"));
+});
+
+app.get("/viral", (req, res) => {
+  res.sendFile(path.resolve("bloombot viral-sales-page-v3.html"));
+});
+
+// Serve Bloomie assets
+app.get("/bloomie.png", (req, res) => {
+  res.sendFile(path.resolve("bloomie.png"));
+});
+
+app.get("*.png", (req, res) => {
+  const filename = path.basename(req.path);
+  const filepath = path.resolve(filename);
+  if (fs.existsSync(filepath)) {
+    res.sendFile(filepath);
+  } else {
+    res.status(404).send("Asset not found");
+  }
+});
+
+app.get("*.jpg", (req, res) => {
+  const filename = path.basename(req.path);
+  const filepath = path.resolve(filename);
+  if (fs.existsSync(filepath)) {
+    res.sendFile(filepath);
+  } else {
+    res.status(404).send("Asset not found");
+  }
+});
+
 app.use(async (req, res) => {
   // If not configured, force users to /setup for any non-setup routes.
   if (!isConfigured() && !req.path.startsWith("/setup")) {
