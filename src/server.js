@@ -704,7 +704,7 @@ app.get("/viral", (req, res) => {
 // Serve the React JSX component
 // JSX files are now bundled by Vite - no direct serving needed
 
-// Serve Bloomie assets
+// Serve Bloomie assets (deployment trigger: regex patterns confirmed)
 app.get("/bloomie.png", (req, res) => {
   res.sendFile(path.resolve("bloomie.png"));
 });
