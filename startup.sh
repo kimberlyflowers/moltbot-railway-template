@@ -23,27 +23,21 @@ else
     # Create temporary file with Bloomie routes
     cat > /tmp/bloomie_routes.js << 'EOF'
 
-// 🌸 Bloomie Dashboard Routes - Serve React App (BEFORE authentication middleware)
+// 🌸 Bloomie Dashboard Routes (BEFORE authentication middleware)
 app.get("/", (req, res) => {
-  res.sendFile(path.join(process.cwd(), "src", "public", "index.html"));
+  res.sendFile(path.resolve("bloombot-sales-page-v8it is finished.html"));
 });
 
 app.get("/dashboard", (req, res) => {
-  res.sendFile(path.join(process.cwd(), "src", "public", "index.html"));
+  res.sendFile(path.resolve("bloombot-sales-page-v8it is finished.html"));
 });
 
 app.get("/bloomie", (req, res) => {
-  res.sendFile(path.join(process.cwd(), "src", "public", "index.html"));
+  res.sendFile(path.resolve("bloombot-sales-page-FIRE!!.html"));
 });
 
 app.get("/viral", (req, res) => {
-  res.sendFile(path.join(process.cwd(), "src", "public", "index.html"));
-});
-
-// Serve the React JSX component
-app.get("/dashboard.jsx", (req, res) => {
-  res.type("text/javascript");
-  res.sendFile(path.join(process.cwd(), "src", "public", "bloomie-dashboard-v11.jsx"));
+  res.sendFile(path.resolve("bloombot viral-sales-page-v3.html"));
 });
 
 // Serve Bloomie assets
@@ -51,7 +45,7 @@ app.get("/bloomie.png", (req, res) => {
   res.sendFile(path.resolve("bloomie.png"));
 });
 
-app.get(/.*\.png$/, (req, res) => {
+app.get("*.png", (req, res) => {
   const filename = path.basename(req.path);
   const filepath = path.resolve(filename);
   if (fs.existsSync(filepath)) {
@@ -61,7 +55,7 @@ app.get(/.*\.png$/, (req, res) => {
   }
 });
 
-app.get(/.*\.jpg$/, (req, res) => {
+app.get("*.jpg", (req, res) => {
   const filename = path.basename(req.path);
   const filepath = path.resolve(filename);
   if (fs.existsSync(filepath)) {
