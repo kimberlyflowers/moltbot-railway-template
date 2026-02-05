@@ -2011,8 +2011,8 @@ app.use('/api/openclaw', async (req, res) => {
 });
 
 // ─── SERVE REACT DASHBOARD FRONTEND ───────────────────────────
-// Serve frontend development files directly
-app.use(express.static(path.join(process.cwd(), 'frontend')));
+// Serve built React app files
+app.use(express.static(path.join(process.cwd(), 'dist')));
 
 // SPA routing: send index.html for any non-API route (when configured)
 app.get('*', (req, res, next) => {
@@ -2021,9 +2021,9 @@ app.get('*', (req, res, next) => {
     return next();
   }
 
-  // If configured, serve the React app
+  // If configured, serve the built React app
   if (isConfigured()) {
-    const indexPath = path.join(process.cwd(), 'frontend/index.html');
+    const indexPath = path.join(process.cwd(), 'dist/index.html');
     if (fs.existsSync(indexPath)) {
       return res.sendFile(indexPath);
     }
