@@ -891,8 +891,14 @@ const server = app.listen(PORT, () => {
   console.log(`[wrapper] configured: ${isConfigured()}`);
 });
 
-// Handle WebSocket upgrades
+// Handle WebSocket upgrades - ONLY for Openclaw routes
 server.on("upgrade", async (req, socket, head) => {
+  // Only proxy WebSocket upgrades for /openclaw routes
+  if (!req.url?.startsWith('/openclaw')) {
+    socket.destroy();
+    return;
+  }
+
   if (!isConfigured()) {
     socket.destroy();
     return;
