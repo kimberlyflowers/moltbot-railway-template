@@ -1336,6 +1336,7 @@ server.on("upgrade", async (req, socket, head) => {
 const server = app.listen(PORT, () => {
   console.log(`🚀 Openclaw Railway wrapper listening on port ${PORT}`);
   console.log(`🌸 Bloomie dashboard available at http://localhost:${PORT}/`);
+  console.log(`🔑 Setup password configured: ${SETUP_PASSWORD ? 'Yes' : 'No'}`);
 });
 
 // Initialize the unified WebSocket server
