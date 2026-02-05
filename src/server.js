@@ -7,6 +7,10 @@ import path from "node:path";
 import express from "express";
 import httpProxy from "http-proxy";
 import * as tar from "tar";
+import { WebSocketServer } from "ws";
+import screenshot from "screenshot-desktop";
+import { v4 as uuidv4 } from "uuid";
+import robot from "robotjs";
 
 
 // Railway commonly sets PORT=8080 for HTTP services.
@@ -91,6 +95,402 @@ function isConfigured() {
     return fs.existsSync(configPath());
   } catch {
     return false;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   UNIFIED WEBSOCKET SERVER - Sarah's Chat & Screen Streaming
+   ═══════════════════════════════════════════════════════════════ */
+
+/**
+ * Chat Server - Handles /chat WebSocket connections
+ */
+class SarahChatServer {
+  constructor() {
+    this.clients = new Set();
+    this.messages = [];
+    this.permissions = new Map(); // client -> permission requests
+  }
+
+  async handleClient(ws, request) {
+    const clientId = uuidv4();
+    console.log(`💬 [Chat] New client connected: ${clientId}`);
+
+    this.clients.add(ws);
+    ws.clientId = clientId;
+
+    // Send welcome message and recent chat history
+    ws.send(JSON.stringify({
+      type: 'welcome',
+      clientId,
+      messages: this.messages.slice(-10) // Last 10 messages
+    }));
+
+    ws.on('message', (data) => {
+      try {
+        const message = JSON.parse(data.toString());
+        this.handleMessage(ws, message);
+      } catch (err) {
+        console.error('💬 [Chat] Invalid message:', err);
+      }
+    });
+
+    ws.on('close', () => {
+      this.clients.delete(ws);
+      console.log(`💬 [Chat] Client disconnected: ${clientId}`);
+    });
+
+    ws.on('error', (err) => {
+      console.error(`💬 [Chat] WebSocket error for ${clientId}:`, err);
+    });
+  }
+
+  handleMessage(ws, message) {
+    console.log(`💬 [Chat] Message from ${ws.clientId}:`, message);
+
+    switch (message.type) {
+      case 'chat':
+        this.handleChatMessage(ws, message);
+        break;
+      case 'request_control':
+        this.handleControlRequest(ws, message);
+        break;
+      case 'control_response':
+        this.handleControlResponse(ws, message);
+        break;
+      default:
+        console.warn(`💬 [Chat] Unknown message type: ${message.type}`);
+    }
+  }
+
+  handleChatMessage(ws, message) {
+    const chatMessage = {
+      id: uuidv4(),
+      type: 'chat',
+      clientId: ws.clientId,
+      text: message.text,
+      timestamp: new Date().toISOString(),
+      sender: message.sender || 'User'
+    };
+
+    this.messages.push(chatMessage);
+
+    // Broadcast to all connected clients
+    this.broadcast({
+      type: 'new_message',
+      message: chatMessage
+    });
+
+    // Auto-reply simulation (Sarah's response)
+    setTimeout(() => {
+      const reply = {
+        id: uuidv4(),
+        type: 'chat',
+        clientId: 'sarah',
+        text: this.generateSarahResponse(message.text),
+        timestamp: new Date().toISOString(),
+        sender: 'Sarah'
+      };
+
+      this.messages.push(reply);
+      this.broadcast({
+        type: 'new_message',
+        message: reply
+      });
+    }, 1000 + Math.random() * 2000); // 1-3 second delay
+  }
+
+  handleControlRequest(ws, message) {
+    const request = {
+      id: uuidv4(),
+      clientId: ws.clientId,
+      timestamp: new Date().toISOString(),
+      reason: message.reason || 'Remote assistance requested'
+    };
+
+    this.permissions.set(ws.clientId, request);
+
+    // Broadcast control request to all clients (Sarah can approve/deny)
+    this.broadcast({
+      type: 'control_request',
+      request
+    });
+  }
+
+  handleControlResponse(ws, message) {
+    const { requestId, approved } = message;
+
+    // Find the original request
+    for (const [clientId, request] of this.permissions.entries()) {
+      if (request.id === requestId) {
+        this.broadcast({
+          type: 'control_response',
+          requestId,
+          approved,
+          message: approved ? 'Remote control granted' : 'Remote control denied'
+        });
+
+        if (approved) {
+          console.log(`🎮 [Control] Access granted to ${clientId}`);
+        }
+
+        this.permissions.delete(clientId);
+        break;
+      }
+    }
+  }
+
+  generateSarahResponse(userMessage) {
+    const responses = [
+      "I can help you with that! Let me take a look.",
+      "Got it! I'm processing your request now.",
+      "That's interesting! Let me work on that for you.",
+      "I understand. I'll handle this right away.",
+      "Perfect! I can see what you need help with.",
+      "Let me check that for you. One moment please.",
+      "I'm on it! This will just take a moment.",
+      "Great question! I'll find the answer for you."
+    ];
+
+    if (userMessage.toLowerCase().includes('screen') || userMessage.toLowerCase().includes('control')) {
+      return "I can help you with screen sharing and remote control. Would you like me to request access to assist you?";
+    }
+
+    return responses[Math.floor(Math.random() * responses.length)];
+  }
+
+  broadcast(data) {
+    const message = JSON.stringify(data);
+    this.clients.forEach(client => {
+      if (client.readyState === 1) { // WebSocket.OPEN
+        client.send(message);
+      }
+    });
+  }
+}
+
+/**
+ * Screen Streamer - Handles /screen WebSocket connections
+ */
+class ScreenStreamer {
+  constructor() {
+    this.clients = new Set();
+    this.isStreaming = false;
+    this.streamInterval = null;
+    this.controlEnabled = false;
+    this.authorizedClients = new Set();
+  }
+
+  async handleClient(ws, request) {
+    const clientId = uuidv4();
+    console.log(`🎥 [Screen] New client connected: ${clientId}`);
+
+    this.clients.add(ws);
+    ws.clientId = clientId;
+
+    // Send initial screen capture
+    try {
+      const screenshot = await this.captureScreen();
+      ws.send(JSON.stringify({
+        type: 'screen_frame',
+        data: screenshot,
+        timestamp: Date.now()
+      }));
+    } catch (err) {
+      console.error('🎥 [Screen] Failed to capture initial screen:', err);
+    }
+
+    // Start streaming if not already active
+    if (!this.isStreaming) {
+      this.startStreaming();
+    }
+
+    ws.on('message', (data) => {
+      try {
+        const message = JSON.parse(data.toString());
+        this.handleMessage(ws, message);
+      } catch (err) {
+        console.error('🎥 [Screen] Invalid message:', err);
+      }
+    });
+
+    ws.on('close', () => {
+      this.clients.delete(ws);
+      this.authorizedClients.delete(clientId);
+      console.log(`🎥 [Screen] Client disconnected: ${clientId}`);
+
+      if (this.clients.size === 0) {
+        this.stopStreaming();
+      }
+    });
+
+    ws.on('error', (err) => {
+      console.error(`🎥 [Screen] WebSocket error for ${clientId}:`, err);
+    });
+  }
+
+  handleMessage(ws, message) {
+    console.log(`🎥 [Screen] Message from ${ws.clientId}:`, message);
+
+    switch (message.type) {
+      case 'mouse_move':
+        if (this.authorizedClients.has(ws.clientId)) {
+          this.handleMouseMove(message.x, message.y);
+        }
+        break;
+      case 'mouse_click':
+        if (this.authorizedClients.has(ws.clientId)) {
+          this.handleMouseClick(message.x, message.y, message.button);
+        }
+        break;
+      case 'key_press':
+        if (this.authorizedClients.has(ws.clientId)) {
+          this.handleKeyPress(message.key);
+        }
+        break;
+      case 'enable_control':
+        this.authorizedClients.add(ws.clientId);
+        console.log(`🎮 [Control] Enabled for ${ws.clientId}`);
+        break;
+      case 'disable_control':
+        this.authorizedClients.delete(ws.clientId);
+        console.log(`🎮 [Control] Disabled for ${ws.clientId}`);
+        break;
+      default:
+        console.warn(`🎥 [Screen] Unknown message type: ${message.type}`);
+    }
+  }
+
+  async captureScreen() {
+    try {
+      const screenshot = await screenshot({ format: 'jpg', quality: 60 });
+      return screenshot.toString('base64');
+    } catch (err) {
+      console.error('🎥 [Screen] Capture failed:', err);
+      return null;
+    }
+  }
+
+  startStreaming() {
+    if (this.isStreaming) return;
+
+    console.log('🎥 [Screen] Starting screen stream...');
+    this.isStreaming = true;
+
+    this.streamInterval = setInterval(async () => {
+      if (this.clients.size === 0) {
+        this.stopStreaming();
+        return;
+      }
+
+      try {
+        const screenshot = await this.captureScreen();
+        if (screenshot) {
+          const frame = JSON.stringify({
+            type: 'screen_frame',
+            data: screenshot,
+            timestamp: Date.now()
+          });
+
+          this.clients.forEach(client => {
+            if (client.readyState === 1) { // WebSocket.OPEN
+              client.send(frame);
+            }
+          });
+        }
+      } catch (err) {
+        console.error('🎥 [Screen] Stream error:', err);
+      }
+    }, 1000 / 10); // 10 FPS
+  }
+
+  stopStreaming() {
+    if (!this.isStreaming) return;
+
+    console.log('🎥 [Screen] Stopping screen stream...');
+    this.isStreaming = false;
+
+    if (this.streamInterval) {
+      clearInterval(this.streamInterval);
+      this.streamInterval = null;
+    }
+  }
+
+  handleMouseMove(x, y) {
+    try {
+      robot.moveMouse(x, y);
+    } catch (err) {
+      console.error('🎮 [Control] Mouse move failed:', err);
+    }
+  }
+
+  handleMouseClick(x, y, button = 'left') {
+    try {
+      robot.moveMouse(x, y);
+      robot.mouseClick(button);
+    } catch (err) {
+      console.error('🎮 [Control] Mouse click failed:', err);
+    }
+  }
+
+  handleKeyPress(key) {
+    try {
+      robot.keyTap(key);
+    } catch (err) {
+      console.error('🎮 [Control] Key press failed:', err);
+    }
+  }
+}
+
+/**
+ * Unified WebSocket Server - Routes connections based on path
+ */
+class UnifiedWebSocketServer {
+  constructor(server) {
+    this.chatServer = new SarahChatServer();
+    this.screenStreamer = new ScreenStreamer();
+
+    // Create WebSocket server attached to HTTP server
+    this.wss = new WebSocketServer({
+      server,
+      path: false // We'll handle routing manually
+    });
+
+    this.setupRouting();
+  }
+
+  setupRouting() {
+    this.wss.on('connection', (ws, request) => {
+      const url = new URL(request.url, `http://${request.headers.host}`);
+      const path = url.pathname;
+      const clientInfo = `${request.socket.remoteAddress}:${request.socket.remotePort}`;
+
+      console.log(`🔌 [WebSocket] New connection from ${clientInfo} to path: ${path}`);
+
+      try {
+        if (path === '/chat' || path === '/chat/') {
+          console.log(`   → Routing to chat server`);
+          this.chatServer.handleClient(ws, request);
+        } else if (path === '/screen' || path === '/screen/') {
+          console.log(`   → Routing to screen streamer`);
+          this.screenStreamer.handleClient(ws, request);
+        } else {
+          console.warn(`   ⚠️ Unknown WebSocket path: ${path}`);
+          ws.send(JSON.stringify({
+            type: 'error',
+            message: `Unknown path '${path}'. Use /chat or /screen`
+          }));
+          ws.close();
+        }
+      } catch (err) {
+        console.error(`❌ [WebSocket] Error handling connection to ${path}:`, err);
+        ws.close();
+      }
+    });
+
+    console.log(`🚀 [WebSocket] Unified server ready`);
+    console.log(`   💬 Chat: ws://localhost:${PORT}/chat`);
+    console.log(`   🎥 Screen: ws://localhost:${PORT}/screen`);
   }
 }
 
@@ -258,21 +658,27 @@ function requireSetupAuth(req, res, next) {
 const app = express();
 app.disable("x-powered-by");
 
-// 🌸 Bloomie Dashboard Routes (BEFORE authentication middleware)
+// 🌸 Bloomie Dashboard Routes - Serve React App (BEFORE authentication middleware)
 app.get("/", (req, res) => {
-  res.sendFile(path.resolve("bloombot-sales-page-v8it is finished.html"));
+  res.sendFile(path.join(process.cwd(), "src", "public", "index.html"));
 });
 
 app.get("/dashboard", (req, res) => {
-  res.sendFile(path.resolve("bloombot-sales-page-v8it is finished.html"));
+  res.sendFile(path.join(process.cwd(), "src", "public", "index.html"));
 });
 
 app.get("/bloomie", (req, res) => {
-  res.sendFile(path.resolve("bloombot-sales-page-FIRE!!.html"));
+  res.sendFile(path.join(process.cwd(), "src", "public", "index.html"));
 });
 
 app.get("/viral", (req, res) => {
-  res.sendFile(path.resolve("bloombot viral-sales-page-v3.html"));
+  res.sendFile(path.join(process.cwd(), "src", "public", "index.html"));
+});
+
+// Serve the React JSX component
+app.get("/dashboard.jsx", (req, res) => {
+  res.type("text/javascript");
+  res.sendFile(path.join(process.cwd(), "src", "public", "bloomie-dashboard-v11.jsx"));
 });
 
 // Serve Bloomie assets
@@ -891,26 +1297,39 @@ const server = app.listen(PORT, () => {
   console.log(`[wrapper] configured: ${isConfigured()}`);
 });
 
-// Handle WebSocket upgrades - ONLY for Openclaw routes
+// Initialize Unified WebSocket Server
+const unifiedWebSocketServer = new UnifiedWebSocketServer(server);
+
+// Handle WebSocket upgrades - Route between Sarah's unified server and Openclaw
 server.on("upgrade", async (req, socket, head) => {
-  // Only proxy WebSocket upgrades for /openclaw routes
-  if (!req.url?.startsWith('/openclaw')) {
-    socket.destroy();
+  const url = req.url || '';
+
+  // Handle Sarah's unified WebSocket routes (/chat, /screen)
+  if (url.startsWith('/chat') || url.startsWith('/screen')) {
+    // Let the WebSocketServer handle these routes automatically
     return;
   }
 
-  if (!isConfigured()) {
-    socket.destroy();
+  // Handle Openclaw routes
+  if (url.startsWith('/openclaw')) {
+    if (!isConfigured()) {
+      socket.destroy();
+      return;
+    }
+    try {
+      await ensureGatewayRunning();
+    } catch {
+      socket.destroy();
+      return;
+    }
+    // Proxy WebSocket upgrade (auth token injected via proxyReqWs event)
+    proxy.ws(req, socket, head, { target: GATEWAY_TARGET });
     return;
   }
-  try {
-    await ensureGatewayRunning();
-  } catch {
-    socket.destroy();
-    return;
-  }
-  // Proxy WebSocket upgrade (auth token injected via proxyReqWs event)
-  proxy.ws(req, socket, head, { target: GATEWAY_TARGET });
+
+  // Unknown WebSocket route - destroy connection
+  console.warn(`[WebSocket] Unknown route: ${url}`);
+  socket.destroy();
 });
 
 process.on("SIGTERM", () => {
