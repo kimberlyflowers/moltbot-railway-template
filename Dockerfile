@@ -56,6 +56,9 @@ RUN apt-get update \
     python3 \
     pkg-config \
     sudo \
+    libx11-dev \
+    libxtst-dev \
+    libpng-dev \
   && rm -rf /var/lib/apt/lists/*
 
 # Install Homebrew (must run as non-root user)
