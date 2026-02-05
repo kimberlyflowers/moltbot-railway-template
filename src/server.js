@@ -1168,6 +1168,136 @@ app.get("/setup/debug/openclaw-source", (_req, res) => {
   res.json(analysis);
 });
 
+// 🌸 SARAH'S OPENCLAW DISCOVERY - READ SPECIFIC GATEWAY FILES
+app.get("/setup/debug/sarah-discovery", (_req, res) => {
+  const discovery = {
+    timestamp: new Date().toISOString(),
+    sarahFindings: {
+      sourceStructure: "✅ Found complete Openclaw source at /openclaw/src/",
+      keyFiles: [],
+      apiEndpoints: [],
+      documentation: [],
+      errors: []
+    }
+  };
+
+  // Sarah's key files to read
+  const keyFiles = [
+    '/openclaw/src/gateway/server-http.ts',          // HTTP endpoints (10K)
+    '/openclaw/src/gateway/server-methods-list.ts',  // RPC methods list
+    '/openclaw/src/gateway/openresponses-http.ts',   // OpenAI API (27K)
+    '/openclaw/src/gateway/server-chat.ts',          // Chat endpoints (12K)
+    '/openclaw/src/gateway/server-channels.ts',      // Channel APIs (10K)
+    '/openclaw/src/gateway/server-cron.ts',          // Cron job APIs (4K)
+    '/openclaw/src/gateway/auth.ts',                 // Authentication
+    '/openclaw/README.md',                           // Overview (94KB)
+    '/openclaw/docs',                                // API docs directory
+  ];
+
+  for (const filePath of keyFiles) {
+    try {
+      if (fs.existsSync(filePath)) {
+        const stat = fs.statSync(filePath);
+
+        if (stat.isDirectory()) {
+          // Handle docs directory
+          const contents = fs.readdirSync(filePath).slice(0, 20);
+          discovery.sarahFindings.keyFiles.push({
+            file: filePath,
+            type: 'directory',
+            contents: contents,
+            size: contents.length
+          });
+        } else {
+          // Handle individual files
+          const content = fs.readFileSync(filePath, 'utf8');
+
+          // Extract API endpoints and methods
+          const endpoints = [];
+          const methods = [];
+
+          // Look for HTTP route patterns
+          const httpPatterns = [
+            /app\.(get|post|put|delete|patch)\s*\(\s*['"`]([^'"`]+)['"`]/g,
+            /router\.(get|post|put|delete|patch)\s*\(\s*['"`]([^'"`]+)['"`]/g,
+            /\.route\s*\(\s*['"`]([^'"`]+)['"`]/g,
+            /server\.(get|post|put|delete|patch)\s*\(\s*['"`]([^'"`]+)['"`]/g
+          ];
+
+          for (const pattern of httpPatterns) {
+            let match;
+            while ((match = pattern.exec(content)) !== null) {
+              endpoints.push({
+                method: match[1]?.toUpperCase() || 'GET',
+                path: match[2] || match[1],
+                file: filePath
+              });
+            }
+          }
+
+          // Look for method exports and function definitions
+          const methodPatterns = [
+            /export\s+(?:async\s+)?function\s+(\w+)/g,
+            /export\s+const\s+(\w+)\s*=/g,
+            /async\s+(\w+)\s*\(/g,
+            /function\s+(\w+)\s*\(/g
+          ];
+
+          for (const pattern of methodPatterns) {
+            let match;
+            while ((match = pattern.exec(content)) !== null) {
+              if (match[1] && !match[1].startsWith('_')) { // Skip private methods
+                methods.push({
+                  name: match[1],
+                  file: filePath
+                });
+              }
+            }
+          }
+
+          discovery.sarahFindings.keyFiles.push({
+            file: filePath,
+            type: 'file',
+            size: content.length,
+            preview: content.substring(0, 1000),
+            endpoints: endpoints.slice(0, 10), // Limit output
+            methods: methods.slice(0, 20),     // Limit output
+            hasAuth: content.includes('auth') || content.includes('token'),
+            hasWebSocket: content.includes('ws') || content.includes('socket'),
+            hasOpenAI: content.includes('openai') || content.includes('gpt'),
+            hasCron: content.includes('cron') || content.includes('schedule')
+          });
+
+          // Collect all endpoints for summary
+          discovery.sarahFindings.apiEndpoints.push(...endpoints.slice(0, 5));
+        }
+      } else {
+        discovery.sarahFindings.errors.push(`File not found: ${filePath}`);
+      }
+    } catch (err) {
+      discovery.sarahFindings.errors.push(`Error reading ${filePath}: ${err.message}`);
+    }
+  }
+
+  // Create integration summary
+  discovery.sarahFindings.integrationSummary = {
+    totalEndpoints: discovery.sarahFindings.apiEndpoints.length,
+    endpointsByMethod: discovery.sarahFindings.apiEndpoints.reduce((acc, ep) => {
+      acc[ep.method] = (acc[ep.method] || 0) + 1;
+      return acc;
+    }, {}),
+    keyIntegrations: [
+      { feature: 'Chat Sessions', file: '/openclaw/src/gateway/server-chat.ts', priority: 'HIGH' },
+      { feature: 'Channel Status', file: '/openclaw/src/gateway/server-channels.ts', priority: 'HIGH' },
+      { feature: 'Cron Jobs', file: '/openclaw/src/gateway/server-cron.ts', priority: 'MEDIUM' },
+      { feature: 'OpenAI API', file: '/openclaw/src/gateway/openresponses-http.ts', priority: 'HIGH' },
+      { feature: 'Authentication', file: '/openclaw/src/gateway/auth.ts', priority: 'CRITICAL' }
+    ]
+  };
+
+  res.json(discovery);
+});
+
 // DEBUG ENDPOINT - Remove after troubleshooting
 app.get("/debug/env", (_req, res) => {
   res.json({
