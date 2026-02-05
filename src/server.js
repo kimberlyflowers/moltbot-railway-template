@@ -1978,6 +1978,38 @@ app.use('/openclaw', async (req, res) => {
   return proxy.web(req, res, { target: GATEWAY_TARGET });
 });
 
+// Proxy Openclaw API endpoints for Sarah's dashboard
+app.use('/api/openclaw', async (req, res) => {
+  if (isConfigured()) {
+    try {
+      await ensureGatewayRunning();
+    } catch (err) {
+      return res
+        .status(503)
+        .json({ error: `Gateway not ready: ${String(err)}` });
+    }
+  }
+
+  // Map our API routes to gateway routes
+  // /api/openclaw/sessions -> /api/sessions
+  // /api/openclaw/health -> /health (or /api/health)
+  const originalUrl = req.url;
+  let gatewayPath = originalUrl;
+
+  // Special mappings for known endpoints
+  if (originalUrl.startsWith('/health') || originalUrl.startsWith('/status') || originalUrl.startsWith('/overview')) {
+    gatewayPath = originalUrl; // Keep as-is for root endpoints
+  } else if (originalUrl.startsWith('/sessions') || originalUrl.startsWith('/logs') || originalUrl.startsWith('/cron') || originalUrl.startsWith('/channels') || originalUrl.startsWith('/skills')) {
+    gatewayPath = `/api${originalUrl}`; // Add /api prefix
+  }
+
+  // Update the request URL for the proxy
+  req.url = gatewayPath;
+
+  // Proxy to gateway (auth token injected via proxyReq event)
+  return proxy.web(req, res, { target: GATEWAY_TARGET });
+});
+
 // Handle any remaining unmatched routes - redirect unconfigured to setup, 404 for configured
 app.use(async (req, res) => {
   // If not configured, force users to /setup for any non-setup routes.
