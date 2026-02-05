@@ -12,6 +12,13 @@ import screenshot from "screenshot-desktop";
 import { v4 as uuidv4 } from "uuid";
 import robot from "robotjs";
 
+// 🧹 Clear Railway's cached patches that override our fixes
+try {
+  console.log("🧹 Clearing Railway cached patches to prevent wildcard route override...");
+  childProcess.execSync("node clear-patches.js", { stdio: "inherit", cwd: process.cwd() });
+} catch (err) {
+  console.warn("⚠️ Patch clearing failed (may not be needed):", err.message);
+}
 
 // Railway commonly sets PORT=8080 for HTTP services.
 const PORT = Number.parseInt(process.env.PORT ?? "8080", 10);
