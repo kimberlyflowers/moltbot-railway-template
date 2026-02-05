@@ -75,9 +75,9 @@ ENV PATH="/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:${PATH}
 
 WORKDIR /app
 
-# Wrapper deps
+# Wrapper deps and build deps
 COPY package.json ./
-RUN npm install --omit=dev && npm cache clean --force
+RUN npm install && npm cache clean --force
 
 # Copy built openclaw
 COPY --from=openclaw-build /openclaw /openclaw
