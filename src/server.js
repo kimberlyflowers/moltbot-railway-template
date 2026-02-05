@@ -264,6 +264,49 @@ function requireSetupAuth(req, res, next) {
 
 const app = express();
 app.disable("x-powered-by");
+
+// 🌸 Bloomie Dashboard Routes (BEFORE authentication middleware)
+app.get("/", (req, res) => {
+  res.sendFile(path.resolve("bloombot-sales-page-v8it is finished.html"));
+});
+
+app.get("/dashboard", (req, res) => {
+  res.sendFile(path.resolve("bloombot-sales-page-v8it is finished.html"));
+});
+
+app.get("/bloomie", (req, res) => {
+  res.sendFile(path.resolve("bloombot-sales-page-FIRE!!.html"));
+});
+
+app.get("/viral", (req, res) => {
+  res.sendFile(path.resolve("bloombot viral-sales-page-v3.html"));
+});
+
+// Serve Bloomie assets
+app.get("/bloomie.png", (req, res) => {
+  res.sendFile(path.resolve("bloomie.png"));
+});
+
+app.get("*.png", (req, res) => {
+  const filename = path.basename(req.path);
+  const filepath = path.resolve(filename);
+  if (fs.existsSync(filepath)) {
+    res.sendFile(filepath);
+  } else {
+    res.status(404).send("Asset not found");
+  }
+});
+
+app.get("*.jpg", (req, res) => {
+  const filename = path.basename(req.path);
+  const filepath = path.resolve(filename);
+  if (fs.existsSync(filepath)) {
+    res.sendFile(filepath);
+  } else {
+    res.status(404).send("Asset not found");
+  }
+});
+
 app.use(express.json({ limit: "1mb" }));
 
 // Minimal health endpoint for Railway.
@@ -818,48 +861,6 @@ proxy.on("proxyReq", (proxyReq, req, res) => {
 // Inject auth token into WebSocket upgrade requests
 proxy.on("proxyReqWs", (proxyReq, req, socket, options, head) => {
   proxyReq.setHeader("Authorization", `Bearer ${OPENCLAW_GATEWAY_TOKEN}`);
-});
-
-// 🌸 Bloomie Dashboard Routes
-app.get("/", (req, res) => {
-  res.sendFile(path.resolve("bloombot-sales-page-v8it is finished.html"));
-});
-
-app.get("/dashboard", (req, res) => {
-  res.sendFile(path.resolve("bloombot-sales-page-v8it is finished.html"));
-});
-
-app.get("/bloomie", (req, res) => {
-  res.sendFile(path.resolve("bloombot-sales-page-FIRE!!.html"));
-});
-
-app.get("/viral", (req, res) => {
-  res.sendFile(path.resolve("bloombot viral-sales-page-v3.html"));
-});
-
-// Serve Bloomie assets
-app.get("/bloomie.png", (req, res) => {
-  res.sendFile(path.resolve("bloomie.png"));
-});
-
-app.get("*.png", (req, res) => {
-  const filename = path.basename(req.path);
-  const filepath = path.resolve(filename);
-  if (fs.existsSync(filepath)) {
-    res.sendFile(filepath);
-  } else {
-    res.status(404).send("Asset not found");
-  }
-});
-
-app.get("*.jpg", (req, res) => {
-  const filename = path.basename(req.path);
-  const filepath = path.resolve(filename);
-  if (fs.existsSync(filepath)) {
-    res.sendFile(filepath);
-  } else {
-    res.status(404).send("Asset not found");
-  }
 });
 
 app.use(async (req, res) => {
