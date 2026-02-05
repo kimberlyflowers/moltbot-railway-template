@@ -746,6 +746,104 @@ app.get("/setup/status", (_req, res) => {
   });
 });
 
+// 🔍 COMPREHENSIVE BUILD DIAGNOSTICS - Bypass route interception
+app.get("/setup/debug/complete", (_req, res) => {
+  const cwd = process.cwd();
+  const distPath = path.join(cwd, "dist");
+  const frontendPath = path.join(cwd, "frontend");
+  const indexPath = path.join(distPath, "index.html");
+
+  let diagnostics = {
+    timestamp: new Date().toISOString(),
+    workingDirectory: cwd,
+    nodeVersion: process.version,
+
+    // VITE BUILD OUTPUT CHECK
+    dist: {
+      path: distPath,
+      exists: false,
+      contents: [],
+      size: 0,
+      indexHtml: {
+        exists: false,
+        size: 0,
+        modified: null,
+        preview: null
+      }
+    },
+
+    // FRONTEND SOURCE CHECK
+    frontend: {
+      path: frontendPath,
+      exists: false,
+      contents: [],
+      srcContents: []
+    },
+
+    // EXPRESS ROUTES CHECK
+    expressRoutes: [],
+
+    // ENVIRONMENT CHECK
+    env: {
+      port: PORT,
+      setupPassword: !!SETUP_PASSWORD,
+      isConfigured: isConfigured()
+    }
+  };
+
+  try {
+    // Check dist/ directory
+    if (fs.existsSync(distPath)) {
+      diagnostics.dist.exists = true;
+      diagnostics.dist.contents = fs.readdirSync(distPath);
+      diagnostics.dist.size = fs.statSync(distPath).size;
+
+      // Check dist/index.html specifically
+      if (fs.existsSync(indexPath)) {
+        const indexStats = fs.statSync(indexPath);
+        const indexContent = fs.readFileSync(indexPath, 'utf8');
+
+        diagnostics.dist.indexHtml = {
+          exists: true,
+          size: indexStats.size,
+          modified: indexStats.mtime,
+          preview: indexContent.substring(0, 1000),
+          containsVite: indexContent.includes('vite'),
+          containsBabel: indexContent.includes('babel'),
+          containsReact: indexContent.includes('react')
+        };
+      }
+    }
+
+    // Check frontend/ directory
+    if (fs.existsSync(frontendPath)) {
+      diagnostics.frontend.exists = true;
+      diagnostics.frontend.contents = fs.readdirSync(frontendPath);
+
+      const srcPath = path.join(frontendPath, "src");
+      if (fs.existsSync(srcPath)) {
+        diagnostics.frontend.srcContents = fs.readdirSync(srcPath);
+      }
+    }
+
+    // Check Express routes (simplified)
+    if (app._router && app._router.stack) {
+      diagnostics.expressRoutes = app._router.stack
+        .filter(layer => layer.route)
+        .map(layer => ({
+          path: layer.route.path,
+          methods: Object.keys(layer.route.methods)
+        }))
+        .slice(0, 10); // Limit output
+    }
+
+  } catch (err) {
+    diagnostics.error = err.message;
+  }
+
+  res.json(diagnostics);
+});
+
 // DEBUG ENDPOINT - Remove after troubleshooting
 app.get("/debug/env", (_req, res) => {
   res.json({
