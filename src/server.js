@@ -2010,29 +2010,6 @@ app.use('/api/openclaw', async (req, res) => {
   return proxy.web(req, res, { target: GATEWAY_TARGET });
 });
 
-// ─── SERVE REACT DASHBOARD FRONTEND ───────────────────────────
-// Serve built React app files
-app.use(express.static(path.join(process.cwd(), 'dist')));
-
-// SPA routing: send index.html for any non-API route (when configured)
-app.get('*', (req, res, next) => {
-  // Skip API routes and setup routes
-  if (req.path.startsWith('/api/') || req.path.startsWith('/setup') || req.path.startsWith('/openclaw')) {
-    return next();
-  }
-
-  // If configured, serve the built React app
-  if (isConfigured()) {
-    const indexPath = path.join(process.cwd(), 'dist/index.html');
-    if (fs.existsSync(indexPath)) {
-      return res.sendFile(indexPath);
-    }
-  }
-
-  // Fall through to catch-all handler
-  next();
-});
-
 // Handle any remaining unmatched routes - redirect unconfigured to setup, 404 for configured
 app.use(async (req, res) => {
   // If not configured, force users to /setup for any non-setup routes.
