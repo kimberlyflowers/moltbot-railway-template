@@ -44,6 +44,10 @@ ENV NODE_ENV=production
 ENV OPENCLAW_STATE_DIR=/data/.openclaw
 ENV OPENCLAW_WORKSPACE_DIR=/data/workspace
 
+# Configure git for any git operations during runtime
+RUN git config --global user.email "railway@deployment.app" \
+    && git config --global user.name "Railway Deployment"
+
 RUN apt-get update \
   && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     ca-certificates \
