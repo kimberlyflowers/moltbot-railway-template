@@ -1298,6 +1298,77 @@ app.get("/setup/debug/sarah-discovery", (_req, res) => {
   res.json(discovery);
 });
 
+// BATCH 1: Railway Container Diagnostics
+app.get("/setup/debug/railway-health", async (_req, res) => {
+  const diagnostics = {
+    timestamp: new Date().toISOString(),
+    server: {
+      process: {
+        pid: process.pid,
+        uptime: process.uptime(),
+        memory: process.memoryUsage(),
+        versions: process.versions
+      },
+      environment: {
+        port: PORT,
+        nodeEnv: process.env.NODE_ENV,
+        platform: process.platform
+      }
+    },
+    network: {},
+    ssl: {},
+    processes: {},
+    errors: []
+  };
+
+  try {
+    // Test internal connectivity
+    try {
+      const localResponse = await fetch('http://localhost:' + PORT + '/setup/healthz');
+      diagnostics.network.localhost = {
+        status: localResponse.status,
+        accessible: true
+      };
+    } catch (err) {
+      diagnostics.network.localhost = {
+        error: err.message,
+        accessible: false
+      };
+    }
+
+    // Test external connectivity (if possible)
+    try {
+      const externalResponse = await fetch('https://httpbin.org/json', {
+        signal: AbortSignal.timeout(5000)
+      });
+      diagnostics.network.external = {
+        status: externalResponse.status,
+        accessible: true
+      };
+    } catch (err) {
+      diagnostics.network.external = {
+        error: err.message,
+        accessible: false
+      };
+    }
+
+    // SSL/TLS diagnostics
+    diagnostics.ssl = {
+      httpsAgent: process.env.HTTPS_AGENT || 'not_set',
+      tlsSettings: {
+        secureProtocol: process.env.TLS_VERSION || 'default',
+        ciphers: process.env.TLS_CIPHERS || 'default'
+      },
+      certificates: 'Railway-managed'
+    };
+
+  } catch (err) {
+    diagnostics.errors.push(err.message);
+  }
+
+  res.json(diagnostics);
+});
+
 // DEBUG ENDPOINT - Remove after troubleshooting
 app.get("/debug/env", (_req, res) => {
   res.json({
