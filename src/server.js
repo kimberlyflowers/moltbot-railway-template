@@ -1305,13 +1305,10 @@ app.use('/openclaw', async (req, res) => {
 
 // Handle any remaining unmatched routes - redirect unconfigured to setup, 404 for configured
 app.use(async (req, res) => {
-  // TEMPORARY: Skip redirect to test Vite build - REMOVE AFTER TESTING
-  console.log(`🔍 [ROUTE DEBUG] ${req.method} ${req.path} - configured: ${isConfigured()}`);
-
   // If not configured, force users to /setup for any non-setup routes.
-  // COMMENTED OUT FOR TESTING: if (!isConfigured() && !req.path.startsWith("/setup")) {
-  //   return res.redirect("/setup");
-  // }
+  if (!isConfigured() && !req.path.startsWith("/setup")) {
+    return res.redirect("/setup");
+  }
 
   // For configured state, return 404 for unmatched routes (let Bloomie routes work)
   res.status(404).type("text/plain").send("Not found");
@@ -1370,6 +1367,49 @@ const server = app.listen(PORT, () => {
 
 // Initialize the unified WebSocket server
 const websocketServer = new UnifiedWebSocketServer(server);
+
+// Ensure minimal configuration exists so dashboard loads immediately
+function ensureMinimalConfig() {
+  try {
+    // Create state directory if it doesn't exist
+    fs.mkdirSync(STATE_DIR, { recursive: true });
+
+    const configFile = configPath();
+
+    // Create minimal openclaw.json if it doesn't exist
+    if (!fs.existsSync(configFile)) {
+      console.log(`🔧 Creating minimal config at ${configFile}`);
+
+      const minimalConfig = {
+        version: "1.0.0",
+        gateway: {
+          mode: "local",
+          host: "localhost",
+          port: 18789,
+          auth: {
+            token: OPENCLAW_GATEWAY_TOKEN || crypto.randomBytes(32).toString('hex')
+          }
+        },
+        workspace: {
+          path: WORKSPACE_DIR
+        },
+        ui: {
+          enabled: true
+        }
+      };
+
+      fs.writeFileSync(configFile, JSON.stringify(minimalConfig, null, 2));
+      console.log(`✅ Created minimal configuration - system now configured`);
+    } else {
+      console.log(`✅ Configuration exists at ${configFile}`);
+    }
+  } catch (err) {
+    console.error(`❌ Failed to create minimal config:`, err);
+  }
+}
+
+// Ensure configuration exists before starting server
+ensureMinimalConfig();
 
 process.on("SIGTERM", () => {
   // Best-effort shutdown
