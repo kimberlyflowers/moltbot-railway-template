@@ -91,4 +91,4 @@ RUN chmod +x startup.sh fix-auth.sh
 
 ENV PORT=8080
 EXPOSE 8080
-CMD ["./startup.sh"]
+CMD ["node", "src/server.js"]
