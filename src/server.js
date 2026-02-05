@@ -12,7 +12,7 @@ import screenshot from "screenshot-desktop";
 import { v4 as uuidv4 } from "uuid";
 import robot from "robotjs";
 
-// 🧹 Clear Railway's cached patches that override our fixes
+// 🧹 Clear Railway's cached patches that override our fixes (deployment trigger)
 try {
   console.log("🧹 Clearing Railway cached patches to prevent wildcard route override...");
   childProcess.execSync("node clear-patches.js", { stdio: "inherit", cwd: process.cwd() });
