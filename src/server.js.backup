@@ -295,7 +295,7 @@ app.get("/bloomie.png", (req, res) => {
   res.sendFile(path.resolve("bloomie.png"));
 });
 
-app.get("*.png", (req, res) => {
+app.get(/.*\.png$/, (req, res) => {
   const filename = path.basename(req.path);
   const filepath = path.resolve(filename);
   if (fs.existsSync(filepath)) {
@@ -305,7 +305,7 @@ app.get("*.png", (req, res) => {
   }
 });
 
-app.get("*.jpg", (req, res) => {
+app.get(/.*\.jpg$/, (req, res) => {
   const filename = path.basename(req.path);
   const filepath = path.resolve(filename);
   if (fs.existsSync(filepath)) {
