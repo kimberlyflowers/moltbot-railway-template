@@ -748,19 +748,8 @@ app.get("/debug/env", (_req, res) => {
 });
 
 // Serve static files for setup wizard
-app.get("/setup/app.js", requireSetupAuth, (_req, res) => {
-  res.type("application/javascript");
-  res.sendFile(path.join(process.cwd(), "src", "public", "setup-app.js"));
-});
-
-app.get("/setup/styles.css", requireSetupAuth, (_req, res) => {
-  res.type("text/css");
-  res.sendFile(path.join(process.cwd(), "src", "public", "styles.css"));
-});
-
-app.get("/setup", requireSetupAuth, (_req, res) => {
-  res.sendFile(path.join(process.cwd(), "src", "public", "setup.html"));
-});
+// Note: Setup wizard assets removed - static files no longer exist
+// Setup functionality now handled by Openclaw itself
 
 app.get("/setup/api/status", requireSetupAuth, async (_req, res) => {
   const version = await runCmd(OPENCLAW_NODE, clawArgs(["--version"]));
