@@ -844,6 +844,128 @@ app.get("/setup/debug/complete", (_req, res) => {
   res.json(diagnostics);
 });
 
+// 🔍 OPENCLAW API DISCOVERY TOOL
+app.get("/setup/debug/openclaw-api", async (_req, res) => {
+  const discoveryResults = {
+    timestamp: new Date().toISOString(),
+    gatewayTarget: GATEWAY_TARGET,
+    gatewayToken: OPENCLAW_GATEWAY_TOKEN ? 'SET' : 'NOT_SET',
+    isConfigured: isConfigured(),
+    endpoints: {},
+    discovery: {
+      attempted: 0,
+      successful: 0,
+      failed: 0
+    }
+  };
+
+  // Common API endpoint patterns to test
+  const endpointsToTest = [
+    // Health/Status endpoints
+    '/', '/health', '/status', '/ping', '/api/health', '/api/status',
+
+    // Dashboard/UI endpoints
+    '/dashboard', '/ui', '/admin', '/console',
+
+    // API endpoints (common patterns)
+    '/api', '/api/v1', '/api/overview', '/api/system',
+    '/api/sessions', '/api/logs', '/api/metrics',
+    '/api/skills', '/api/channels', '/api/cron',
+    '/api/nodes', '/api/instances', '/api/analytics',
+
+    // GraphQL
+    '/graphql', '/api/graphql',
+
+    // WebSocket info
+    '/ws', '/socket.io', '/api/ws'
+  ];
+
+  for (const endpoint of endpointsToTest) {
+    discoveryResults.discovery.attempted++;
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s timeout
+
+      const response = await fetch(`${GATEWAY_TARGET}${endpoint}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${OPENCLAW_GATEWAY_TOKEN}`,
+          'Accept': 'application/json',
+          'User-Agent': 'Sarah-Dashboard-Discovery/1.0'
+        },
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      const result = {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries()),
+        accessible: response.status < 400
+      };
+
+      // Try to get response body for successful requests
+      if (response.status < 400) {
+        try {
+          const contentType = response.headers.get('content-type') || '';
+
+          if (contentType.includes('application/json')) {
+            const json = await response.json();
+            result.contentType = 'json';
+            result.dataStructure = Object.keys(json);
+            result.sampleData = JSON.stringify(json).substring(0, 500);
+          } else if (contentType.includes('text/html')) {
+            const html = await response.text();
+            result.contentType = 'html';
+            result.hasReact = html.includes('react');
+            result.hasVue = html.includes('vue');
+            result.htmlPreview = html.substring(0, 300);
+          } else {
+            result.contentType = contentType;
+            result.size = response.headers.get('content-length') || 'unknown';
+          }
+
+          discoveryResults.discovery.successful++;
+        } catch (parseErr) {
+          result.parseError = parseErr.message;
+          discoveryResults.discovery.successful++;
+        }
+      } else {
+        discoveryResults.discovery.failed++;
+      }
+
+      discoveryResults.endpoints[endpoint] = result;
+
+    } catch (err) {
+      discoveryResults.discovery.failed++;
+      discoveryResults.endpoints[endpoint] = {
+        error: err.message,
+        accessible: false
+      };
+    }
+  }
+
+  // Add summary analysis
+  discoveryResults.analysis = {
+    gatewayRunning: discoveryResults.discovery.successful > 0,
+    likelyApiEndpoints: Object.entries(discoveryResults.endpoints)
+      .filter(([_, result]) => result.accessible && result.contentType === 'json')
+      .map(([endpoint, _]) => endpoint),
+
+    likelyUiEndpoints: Object.entries(discoveryResults.endpoints)
+      .filter(([_, result]) => result.accessible && result.contentType === 'html')
+      .map(([endpoint, _]) => endpoint),
+
+    authRequired: Object.entries(discoveryResults.endpoints)
+      .filter(([_, result]) => result.status === 401)
+      .map(([endpoint, _]) => endpoint)
+  };
+
+  res.json(discoveryResults);
+});
+
 // DEBUG ENDPOINT - Remove after troubleshooting
 app.get("/debug/env", (_req, res) => {
   res.json({
