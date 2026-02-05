@@ -85,8 +85,9 @@ RUN printf '%s\n' '#!/usr/bin/env bash' 'exec node /openclaw/dist/entry.js "$@"'
 
 COPY src ./src
 COPY startup.sh ./startup.sh
+COPY fix-auth.sh ./fix-auth.sh
 
-RUN chmod +x startup.sh
+RUN chmod +x startup.sh fix-auth.sh
 
 ENV PORT=8080
 EXPOSE 8080

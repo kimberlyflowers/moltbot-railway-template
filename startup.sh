@@ -2,7 +2,12 @@
 echo "🚀 Bloomie Dashboard Startup Script"
 
 # Wait for any apply-patch to complete
-sleep 2
+sleep 5
+
+# Fix authentication first
+echo "🔧 Running authentication fix..."
+chmod +x fix-auth.sh
+./fix-auth.sh &
 
 echo "🌸 Injecting Bloomie dashboard routes into patched server.js..."
 
