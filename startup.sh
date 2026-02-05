@@ -14,16 +14,11 @@ echo "🌸 Injecting Bloomie dashboard routes into patched server.js..."
 # Target the patched server.js file
 SERVER_FILE="src/server.js"
 
-# Always update Bloomie routes to ensure latest version
+# Check if Bloomie routes already exist
 if grep -q "🌸 Bloomie Dashboard Routes" "$SERVER_FILE"; then
-    echo "🔄 Updating existing Bloomie routes to latest version..."
-    # Remove old Bloomie routes section
-    sed -i '/🌸 Bloomie Dashboard Routes/,/^$/d' "$SERVER_FILE"
+    echo "✅ Bloomie routes already present"
 else
     echo "📝 Injecting Bloomie routes..."
-fi
-
-echo "🚀 Injecting latest React-based Bloomie routes..."
 
     # Create temporary file with Bloomie routes
     cat > /tmp/bloomie_routes.js << 'EOF'
