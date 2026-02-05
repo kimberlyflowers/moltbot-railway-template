@@ -677,7 +677,16 @@ app.disable("x-powered-by");
 // Serve static assets from Vite build
 app.use(express.static(path.join(process.cwd(), "dist")));
 app.get("/", (req, res) => {
-  res.sendFile(path.join(process.cwd(), "dist", "index.html"));
+  console.log("🌸 [DASHBOARD] Root route hit!");
+  const distPath = path.join(process.cwd(), "dist", "index.html");
+  console.log(`🌸 [DASHBOARD] Serving from: ${distPath}`);
+  console.log(`🌸 [DASHBOARD] File exists: ${fs.existsSync(distPath)}`);
+
+  if (!fs.existsSync(distPath)) {
+    return res.status(500).send(`🚨 VITE BUILD FAILED - dist/index.html not found at ${distPath}`);
+  }
+
+  res.sendFile(distPath);
 });
 
 app.get("/dashboard", (req, res) => {
@@ -744,6 +753,48 @@ app.get("/debug/env", (_req, res) => {
     passwordLength: SETUP_PASSWORD ? SETUP_PASSWORD.length : 0,
     passwordValue: SETUP_PASSWORD || "NOT SET",
     allEnvVars: Object.keys(process.env).filter(key => key.includes('SETUP'))
+  });
+});
+
+// VITE BUILD VERIFICATION ENDPOINT
+app.get("/debug/build", (_req, res) => {
+  const distPath = path.join(process.cwd(), "dist");
+  const indexPath = path.join(distPath, "index.html");
+
+  let distContents = [];
+  let indexContent = null;
+  let buildSuccess = false;
+
+  try {
+    if (fs.existsSync(distPath)) {
+      distContents = fs.readdirSync(distPath);
+      buildSuccess = fs.existsSync(indexPath);
+
+      if (buildSuccess) {
+        const stats = fs.statSync(indexPath);
+        indexContent = {
+          size: stats.size,
+          created: stats.birthtime,
+          modified: stats.mtime,
+          preview: fs.readFileSync(indexPath, 'utf8').substring(0, 500)
+        };
+      }
+    }
+  } catch (err) {
+    console.error("Build check error:", err);
+  }
+
+  res.json({
+    timestamp: new Date().toISOString(),
+    distPath,
+    distExists: fs.existsSync(distPath),
+    distContents,
+    indexPath,
+    indexExists: fs.existsSync(indexPath),
+    indexContent,
+    buildSuccess,
+    workingDirectory: process.cwd(),
+    nodeVersion: process.version
   });
 });
 
