@@ -630,7 +630,11 @@ async function restartGateway() {
 }
 
 function requireSetupAuth(req, res, next) {
+  console.log(`🔑 [AUTH DEBUG] SETUP_PASSWORD exists: ${!!SETUP_PASSWORD}`);
+  console.log(`🔑 [AUTH DEBUG] SETUP_PASSWORD value: "${SETUP_PASSWORD}"`);
+
   if (!SETUP_PASSWORD) {
+    console.log(`🔑 [AUTH DEBUG] No SETUP_PASSWORD - returning 500`);
     return res
       .status(500)
       .type("text/plain")
@@ -640,18 +644,29 @@ function requireSetupAuth(req, res, next) {
   }
 
   const header = req.headers.authorization || "";
+  console.log(`🔑 [AUTH DEBUG] Auth header: "${header}"`);
+
   const [scheme, encoded] = header.split(" ");
   if (scheme !== "Basic" || !encoded) {
+    console.log(`🔑 [AUTH DEBUG] No Basic auth - returning 401`);
     res.set("WWW-Authenticate", 'Basic realm="Openclaw Setup"');
     return res.status(401).send("Auth required");
   }
+
   const decoded = Buffer.from(encoded, "base64").toString("utf8");
   const idx = decoded.indexOf(":");
   const password = idx >= 0 ? decoded.slice(idx + 1) : "";
+  console.log(`🔑 [AUTH DEBUG] Provided password: "${password}"`);
+  console.log(`🔑 [AUTH DEBUG] Expected password: "${SETUP_PASSWORD}"`);
+  console.log(`🔑 [AUTH DEBUG] Passwords match: ${password === SETUP_PASSWORD}`);
+
   if (password !== SETUP_PASSWORD) {
+    console.log(`🔑 [AUTH DEBUG] Password mismatch - returning 401`);
     res.set("WWW-Authenticate", 'Basic realm="Openclaw Setup"');
     return res.status(401).send("Invalid password");
   }
+
+  console.log(`🔑 [AUTH DEBUG] Authentication successful`);
   return next();
 }
 
@@ -1336,6 +1351,8 @@ const server = app.listen(PORT, () => {
   console.log(`🚀 Openclaw Railway wrapper listening on port ${PORT}`);
   console.log(`🌸 Bloomie dashboard available at http://localhost:${PORT}/`);
   console.log(`🔑 Setup password configured: ${SETUP_PASSWORD ? 'Yes' : 'No'}`);
+  console.log(`🔑 Setup password value: "${SETUP_PASSWORD}"`);
+  console.log(`🔑 Setup password length: ${SETUP_PASSWORD ? SETUP_PASSWORD.length : 0}`);
 });
 
 // Initialize the unified WebSocket server
