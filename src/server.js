@@ -285,6 +285,23 @@ app.disable("x-powered-by");
 // 🌸 Bloomie Dashboard Routes - Serve Built React App (BEFORE authentication middleware)
 // Serve static assets from Vite build
 app.use(express.static(path.join(process.cwd(), "dist")));
+
+// ⚠️ SETUP ROUTES MUST BE BEFORE CATCH-ALL ROUTES ⚠️
+// Minimal health endpoint for Railway.
+app.get("/setup/healthz", (_req, res) => res.json({ ok: true }));
+
+// Status endpoint to check configuration state
+app.get("/setup/status", (_req, res) => {
+  const configFile = configPath();
+  res.json({
+    isConfigured: isConfigured(),
+    configPath: configFile,
+    configExists: fs.existsSync(configFile),
+    stateDir: STATE_DIR,
+    stateDirExists: fs.existsSync(STATE_DIR)
+  });
+});
+
 app.get("/", (req, res) => {
   const distPath = path.join(process.cwd(), "dist", "index.html");
   res.sendFile(distPath);
@@ -331,21 +348,6 @@ app.get(/.*\.jpg$/, (req, res) => {
 });
 
 app.use(express.json({ limit: "1mb" }));
-
-// Minimal health endpoint for Railway.
-app.get("/setup/healthz", (_req, res) => res.json({ ok: true }));
-
-// Status endpoint to check configuration state
-app.get("/setup/status", (_req, res) => {
-  const configFile = configPath();
-  res.json({
-    isConfigured: isConfigured(),
-    configPath: configFile,
-    configExists: fs.existsSync(configFile),
-    stateDir: STATE_DIR,
-    stateDirExists: fs.existsSync(STATE_DIR)
-  });
-});
 
 // 🔍 COMPREHENSIVE BUILD DIAGNOSTICS - Bypass route interception
 app.get("/setup/debug/complete", (_req, res) => {
