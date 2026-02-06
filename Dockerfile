@@ -92,6 +92,11 @@ COPY --from=openclaw-build /openclaw /openclaw
 RUN printf '%s\n' '#!/usr/bin/env bash' 'exec node /openclaw/dist/entry.js "$@"' > /usr/local/bin/openclaw \
   && chmod +x /usr/local/bin/openclaw
 
+# Copy startup script first (smaller layer)
+COPY startup.sh ./
+RUN chmod +x startup.sh
+
+# Copy source code
 COPY src ./src
 COPY frontend ./frontend
 COPY vite.config.js ./
@@ -99,11 +104,6 @@ COPY vite.config.js ./
 # Build frontend with Vite
 RUN npm run build:frontend
 
-COPY startup.sh ./
-COPY minimal-server.js ./
-RUN chmod +x startup.sh
-
 ENV PORT=8080
 EXPOSE 8080
-# MULTI-VECTOR: Use main server with patch clearing
 CMD ["./startup.sh"]
