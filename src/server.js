@@ -2131,17 +2131,25 @@ function ensureMinimalConfig() {
 }
 */
 
-// Clean up any existing invalid config on startup
+// AGGRESSIVE cleanup of any existing invalid config on startup
 function cleanupInvalidConfig() {
   try {
-    const configFile = configPath();
-    if (fs.existsSync(configFile)) {
-      console.log(`🧹 Removing existing config file to ensure clean setup: ${configFile}`);
-      fs.unlinkSync(configFile);
-      console.log(`✅ Old config removed - setup can create fresh config`);
+    console.log(`🧹 AGGRESSIVE CLEANUP: Removing entire config directory to fix persistent bad config`);
+
+    // Delete entire .openclaw directory to ensure clean start
+    if (fs.existsSync(STATE_DIR)) {
+      console.log(`🧹 Removing directory: ${STATE_DIR}`);
+      fs.rmSync(STATE_DIR, { recursive: true, force: true });
     }
+
+    // Recreate the directory structure
+    fs.mkdirSync(STATE_DIR, { recursive: true });
+    console.log(`✅ Clean config directory created at ${STATE_DIR}`);
+    console.log(`✅ Openclaw can now create fresh, valid config during onboarding`);
+
   } catch (err) {
-    console.warn(`⚠️ Could not clean up config file:`, err.message);
+    console.error(`❌ CRITICAL: Could not clean up config directory:`, err.message);
+    console.error(`❌ This will likely cause Openclaw startup failures!`);
   }
 }
 
