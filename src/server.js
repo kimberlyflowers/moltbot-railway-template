@@ -1587,20 +1587,12 @@ function ensureMinimalConfig() {
     if (!fs.existsSync(configFile)) {
       console.log(`🔧 Creating minimal config at ${configFile}`);
       const minimalConfig = {
-        version: "1.0.0",
         gateway: {
           mode: "local",
-          host: "localhost",
           port: 18789,
           auth: {
             token: OPENCLAW_GATEWAY_TOKEN || crypto.randomBytes(32).toString('hex')
           }
-        },
-        workspace: {
-          path: WORKSPACE_DIR
-        },
-        ui: {
-          enabled: true
         }
       };
       fs.writeFileSync(configFile, JSON.stringify(minimalConfig, null, 2));
