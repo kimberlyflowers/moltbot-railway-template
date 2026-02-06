@@ -2028,12 +2028,6 @@ app.use(async (req, res) => {
   res.status(404).type("text/plain").send("Not found");
 });
 
-// Create HTTP server from Express app
-const server = app.listen(PORT, () => {
-  console.log(`[wrapper] listening on port ${PORT}`);
-  console.log(`[wrapper] setup wizard: http://localhost:${PORT}/setup`);
-  console.log(`[wrapper] configured: ${isConfigured()}`);
-});
 
 // Initialize Unified WebSocket Server
 const unifiedWebSocketServer = new UnifiedWebSocketServer(server);
