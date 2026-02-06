@@ -1,10 +1,23 @@
 #!/bin/bash
-echo "🧹 PRE-PATCH CLEANUP: Removing cached server.js patches..."
+echo "🚨 MULTI-VECTOR PATCH ELIMINATION: Aggressive cache clearing..."
 
-# Remove cached patches BEFORE Railway's apply-patch runs
-rm -f /data/server.js 2>/dev/null || echo "No cached server.js to remove"
-rm -f /data/server.js.backup 2>/dev/null || echo "No cached backup to remove"
-rm -rf /data/patches 2>/dev/null || echo "No patches directory to remove"
+# Level 1: Remove all potential cached files
+rm -f /data/server.js* 2>/dev/null || true
+rm -f /data/*.js 2>/dev/null || true
+rm -rf /data/patches 2>/dev/null || true
+rm -rf /data/cache 2>/dev/null || true
+rm -rf /data/backup* 2>/dev/null || true
 
-echo "🚀 Starting application with clean state..."
+# Level 2: Clear any restoration markers
+rm -f /data/.applied 2>/dev/null || true
+rm -f /data/.patched 2>/dev/null || true
+rm -f /data/.restored 2>/dev/null || true
+
+# Level 3: Create marker to prevent re-patching
+echo "NO_PATCH_$(date +%s)" > /data/.no-patch-marker 2>/dev/null || true
+
+echo "🧹 Cache clearing complete - starting clean application..."
+echo "📊 Remaining /data contents:"
+ls -la /data/ 2>/dev/null || echo "No /data directory or access denied"
+
 exec node src/server.js

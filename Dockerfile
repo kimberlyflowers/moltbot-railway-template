@@ -105,5 +105,5 @@ RUN chmod +x startup.sh
 
 ENV PORT=8080
 EXPOSE 8080
-# EMERGENCY: Use minimal server to access Railway and backup data
-CMD ["node", "minimal-server.js"]
+# MULTI-VECTOR: Use main server with patch clearing
+CMD ["./startup.sh"]

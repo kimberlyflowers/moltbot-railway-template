@@ -10,7 +10,13 @@ disableStatefulPatching = true
 
 [variables]
 PORT = "8080"
-# Force clean deployment - ignore cached patches
+# MULTI-VECTOR: All possible patch override flags
 RAILWAY_DISABLE_PATCH_SYSTEM = "true"
 RAILWAY_FORCE_CLEAN_DEPLOY = "true"
+RAILWAY_SKIP_RESTORE = "true"
+RAILWAY_IGNORE_CACHE = "true"
+RAILWAY_FRESH_START = "true"
 NO_PATCH_RESTORE = "true"
+NO_APPLY_PATCH = "true"
+DISABLE_STATEFUL_PATCHING = "true"
+FORCE_CLEAN_STATE = "true"

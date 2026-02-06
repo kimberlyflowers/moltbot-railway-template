@@ -1,5 +1,11 @@
-# Tell Railway to ignore cached patches that cause wildcard errors
-/data/server.js
-/data/server.js.backup
+# MULTI-VECTOR: Comprehensive patch blocking
+/data/server.js*
+/data/*.js
 /data/patches/
+/data/cache/
+/data/backup*
 *.patch
+*.bak
+.applied
+.patched
+.restored
