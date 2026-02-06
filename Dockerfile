@@ -99,6 +99,9 @@ COPY vite.config.js ./
 # Build frontend with Vite
 RUN npm run build:frontend
 
+COPY startup.sh ./
+RUN chmod +x startup.sh
+
 ENV PORT=8080
 EXPOSE 8080
-CMD ["node", "src/server.js"]
+CMD ["./startup.sh"]
