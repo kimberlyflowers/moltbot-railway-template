@@ -5,6 +5,12 @@ builder = "dockerfile"
 healthcheckPath = "/setup/healthz"
 healthcheckTimeout = 300
 restartPolicyType = "on_failure"
+# Force clean deployment - disable patch application
+disableStatefulPatching = true
 
 [variables]
 PORT = "8080"
+# Force clean deployment - ignore cached patches
+RAILWAY_DISABLE_PATCH_SYSTEM = "true"
+RAILWAY_FORCE_CLEAN_DEPLOY = "true"
+NO_PATCH_RESTORE = "true"

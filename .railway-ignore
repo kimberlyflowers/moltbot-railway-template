@@ -1,0 +1,5 @@
+# Tell Railway to ignore cached patches that cause wildcard errors
+/data/server.js
+/data/server.js.backup
+/data/patches/
+*.patch
