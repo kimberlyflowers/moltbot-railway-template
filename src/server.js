@@ -1579,6 +1579,9 @@ server.on("upgrade", async (req, socket, head) => {
   socket.destroy();
 });
 
+// COMMENTED OUT: This function was creating invalid config that Openclaw rejects
+// Let Openclaw create its own config during onboarding instead
+/*
 function ensureMinimalConfig() {
   try {
     fs.mkdirSync(STATE_DIR, { recursive: true });
@@ -1604,8 +1607,9 @@ function ensureMinimalConfig() {
     console.error(`❌ Failed to create minimal config:`, err);
   }
 }
+*/
 
-ensureMinimalConfig();
+// ensureMinimalConfig(); // COMMENTED OUT - let Openclaw handle its own config
 
 process.on("SIGTERM", () => {
   try {
