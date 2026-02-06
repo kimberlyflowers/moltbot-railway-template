@@ -114,7 +114,7 @@ async function waitForGatewayReady(opts = {}) {
   const timeoutMs = opts.timeoutMs ?? 20_000;
   const start = Date.now();
   const endpoints = ["/openclaw", "/openclaw", "/", "/health"];
-  
+
   while (Date.now() - start < timeoutMs) {
     for (const endpoint of endpoints) {
       try {
@@ -1548,10 +1548,6 @@ const server = app.listen(PORT, () => {
   console.log(`🔑 Setup password configured: ${SETUP_PASSWORD ? 'Yes' : 'No'}`);
   console.log(`🔑 Setup password value: "${SETUP_PASSWORD}"`);
   console.log(`🔑 Setup password length: ${SETUP_PASSWORD ? SETUP_PASSWORD.length : 0}`);
-
-  // Initialize the unified WebSocket server AFTER server exists
-  const websocketServer = new UnifiedWebSocketServer(server);
-  console.log(`🎮 Unified WebSocket server initialized`);
 });
 
 // Handle WebSocket upgrades
