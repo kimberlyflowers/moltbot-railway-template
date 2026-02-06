@@ -1611,6 +1611,22 @@ function ensureMinimalConfig() {
 
 // ensureMinimalConfig(); // COMMENTED OUT - let Openclaw handle its own config
 
+// Clean up any existing invalid config on startup
+function cleanupInvalidConfig() {
+  try {
+    const configFile = configPath();
+    if (fs.existsSync(configFile)) {
+      console.log(`🧹 Removing existing config file to ensure clean setup: ${configFile}`);
+      fs.unlinkSync(configFile);
+      console.log(`✅ Old config removed - setup can create fresh config`);
+    }
+  } catch (err) {
+    console.warn(`⚠️ Could not clean up config file:`, err.message);
+  }
+}
+
+cleanupInvalidConfig();
+
 process.on("SIGTERM", () => {
   try {
     if (gatewayProc) gatewayProc.kill("SIGTERM");
