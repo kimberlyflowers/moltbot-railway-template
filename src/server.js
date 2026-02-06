@@ -2086,17 +2086,7 @@ server.on("upgrade", async (req, socket, head) => {
   socket.destroy();
 });
 
-// Start the Express server
-const server = app.listen(PORT, () => {
-  console.log(`🚀 Openclaw Railway wrapper listening on port ${PORT}`);
-  console.log(`🌸 Bloomie dashboard available at http://localhost:${PORT}/`);
-  console.log(`🔑 Setup password configured: ${SETUP_PASSWORD ? 'Yes' : 'No'}`);
-  console.log(`🔑 Setup password value: "${SETUP_PASSWORD}"`);
-  console.log(`🔑 Setup password length: ${SETUP_PASSWORD ? SETUP_PASSWORD.length : 0}`);
-});
-
-// Initialize the unified WebSocket server
-const websocketServer = new UnifiedWebSocketServer(server);
+// Server already initialized above with WebSocket support
 
 // COMMENTED OUT: This function was creating invalid config that Openclaw rejects
 // Let Openclaw create its own config during onboarding instead
