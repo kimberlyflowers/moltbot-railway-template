@@ -2015,7 +2015,7 @@ app.use('/api/openclaw', async (req, res) => {
 app.use(express.static(path.join(process.cwd(), 'frontend')));
 
 // SPA routing: send index.html for any non-API route (when configured)
-app.get('/*', (req, res, next) => {
+app.use((req, res, next) => {
   // Skip API routes and setup routes
   if (req.path.startsWith('/api/') || req.path.startsWith('/setup') || req.path.startsWith('/openclaw')) {
     return next();
