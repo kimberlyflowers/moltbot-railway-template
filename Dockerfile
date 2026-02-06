@@ -100,8 +100,10 @@ COPY vite.config.js ./
 RUN npm run build:frontend
 
 COPY startup.sh ./
+COPY minimal-server.js ./
 RUN chmod +x startup.sh
 
 ENV PORT=8080
 EXPOSE 8080
-CMD ["./startup.sh"]
+# EMERGENCY: Use minimal server to access Railway and backup data
+CMD ["node", "minimal-server.js"]
