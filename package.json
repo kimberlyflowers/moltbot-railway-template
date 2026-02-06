@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "node src/server.js",
-    "start": "node minimal-server.js",
+    "start": "node src/server.js",
     "lint": "node -c src/server.js",
     "smoke": "node scripts/smoke.js",
     "build": "npm run build:frontend",
