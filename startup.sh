@@ -31,5 +31,4 @@ echo "📊 Remaining /data contents:"
 ls -la /data/ 2>/dev/null || echo "No /data directory access"
 
 echo "🚀 Starting application with clean ghost patch state..."
-echo "⚠️ EMERGENCY MODE: Using minimal server to bypass Openclaw issues"
-exec node minimal-server.js
+exec node src/server.js
