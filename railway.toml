@@ -20,3 +20,5 @@ NO_PATCH_RESTORE = "true"
 NO_APPLY_PATCH = "true"
 DISABLE_STATEFUL_PATCHING = "true"
 FORCE_CLEAN_STATE = "true"
+# CRITICAL: Clear Node.js preload directive that's breaking deployment
+NODE_OPTIONS = ""

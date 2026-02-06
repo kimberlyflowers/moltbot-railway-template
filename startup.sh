@@ -1,23 +1,34 @@
 #!/bin/bash
-echo "🚨 MULTI-VECTOR PATCH ELIMINATION: Aggressive cache clearing..."
+echo "🎯 SELECTIVE PATCH CLEARING: Preserve Railway infrastructure, clear ghost patches..."
 
-# Level 1: Remove all potential cached files
-rm -f /data/server.js* 2>/dev/null || true
-rm -f /data/*.js 2>/dev/null || true
+# CRITICAL: Ensure Railway's preload infrastructure exists
+if [ ! -f "/data/apply-patch.js" ]; then
+  echo "🔧 Creating no-op apply-patch.js for Railway preload system..."
+  cat > /data/apply-patch.js << 'EOF'
+// No-op patch for Railway preload system
+module.exports = function() {
+  console.log('[apply-patch] No-op patch loaded - ghost patches cleared');
+};
+EOF
+  chmod +x /data/apply-patch.js
+fi
+
+# SELECTIVE: Only clear problematic ghost patches, preserve Railway infrastructure
+echo "🧹 Clearing ONLY problematic ghost patches..."
+rm -f /data/server.js 2>/dev/null || true
+rm -f /data/server.js.backup 2>/dev/null || true
+rm -f /data/*.patch 2>/dev/null || true
 rm -rf /data/patches 2>/dev/null || true
-rm -rf /data/cache 2>/dev/null || true
-rm -rf /data/backup* 2>/dev/null || true
 
-# Level 2: Clear any restoration markers
-rm -f /data/.applied 2>/dev/null || true
-rm -f /data/.patched 2>/dev/null || true
-rm -f /data/.restored 2>/dev/null || true
+# Keep these Railway-critical files:
+# - /data/apply-patch.js (Railway preload requirement)
+# - /data/.openclaw/ (Openclaw config)
+# - /data/workspace/ (Sarah's memories)
+# - /data/dist/ (Built React files)
 
-# Level 3: Create marker to prevent re-patching
-echo "NO_PATCH_$(date +%s)" > /data/.no-patch-marker 2>/dev/null || true
-
-echo "🧹 Cache clearing complete - starting clean application..."
+echo "✅ Selective clearing complete - Railway infrastructure preserved"
 echo "📊 Remaining /data contents:"
-ls -la /data/ 2>/dev/null || echo "No /data directory or access denied"
+ls -la /data/ 2>/dev/null || echo "No /data directory access"
 
+echo "🚀 Starting application with clean ghost patch state..."
 exec node src/server.js
